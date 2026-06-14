@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PakSat-1R PRO Locator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060c18;--surface:#0d1525;--card:#111e33;--border:#1e3055;
+  --accent:#00d4ff;--accent2:#0066cc;--green:#00ffaa;--yellow:#ffd700;
+  --orange:#ff8c00;--red:#ff3355;--text:#e8f0ff;--muted:#5a7aaa;--danger:#ff3355;
+}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;display:flex;flex-direction:column}
+
+/* ── TABS ── */
+.tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.tab{flex:1;padding:12px 4px 10px;text-align:center;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-icon{font-size:1.1rem;display:block;margin-bottom:2px}
+
+/* ── PAGES ── */
+.page{display:none;flex:1;flex-direction:column;overflow-y:auto}
+.page.active{display:flex}
+
+/* ── HEADER ── */
+.page-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:10px}
+.sat-pill{background:#00d4ff18;border:1px solid var(--accent);border-radius:20px;padding:3px 10px;font-size:.65rem;font-family:'Space Mono',monospace;color:var(--accent)}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin:0 14px}
+.card+.card{margin-top:12px}
+.card-title{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card-title::before{content:'';width:3px;height:12px;background:var(--accent);border-radius:2px;display:inline-block}
+.scroll-body{padding:14px 0;display:flex;flex-direction:column;gap:12px}
+
+/* ── INPUTS ── */
+label{font-size:.78rem;color:var(--muted);display:block;margin-bottom:4px}
+input[type=number],select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Mono',monospace;font-size:.9rem;padding:10px 12px;outline:none;transition:border-color .2s;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* ── BUTTONS ── */
+.btn{padding:12px;border-radius:10px;border:none;font-family:'Space Grotesk',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#33ddff;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:#ff335520;border:1px solid var(--danger);color:var(--danger)}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn{flex:1}
+
+/* ── RESULT GRID ── */
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.result-box{background:var(--surface);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.result-box.hi{border-color:var(--accent);box-shadow:0 0 16px #00d4ff15}
+.result-box.hi-green{border-color:var(--green);box-shadow:0 0 16px #00ffaa15}
+.result-box.hi-yellow{border-color:var(--yellow);box-shadow:0 0 16px #ffd70015}
+.r-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.r-value{font-family:'Space Mono',monospace;font-size:1.35rem;font-weight:700;color:var(--accent)}
+.r-value.green{color:var(--green)}
+.r-value.yellow{color:var(--yellow)}
+.r-value.orange{color:var(--orange)}
+.r-unit{font-size:.62rem;color:var(--muted);margin-top:2px}
+
+/* ── COMPASS LIVE ── */
+#arCompass{width:100%;max-width:300px;display:block;margin:0 auto;border-radius:50%}
+.compass-section{display:flex;flex-direction:column;align-items:center;gap:8px}
+.heading-display{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--accent);text-align:center}
+.heading-dir{font-size:.75rem;color:var(--muted);text-align:center;margin-top:-4px}
+.align-status{padding:8px 16px;border-radius:20px;font-size:.8rem;font-weight:600;text-align:center;transition:all .3s}
+.align-status.far{background:#ff335520;border:1px solid var(--danger);color:var(--danger)}
+.align-status.close{background:#ffd70020;border:1px solid var(--yellow);color:var(--yellow)}
+.align-status.locked{background:#00ffaa20;border:1px solid var(--green);color:var(--green)}
+
+/* ── AR CAMERA ── */
+#arPage{position:relative;background:#000;min-height:calc(100vh - 100px)}
+#cameraVideo{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+#arCanvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.ar-controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#000000cc);padding:16px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.ar-info-bar{display:flex;justify-content:space-between;padding:8px 12px;background:#00000088;border-radius:10px;backdrop-filter:blur(4px)}
+.ar-info-item{text-align:center}
+.ar-info-item .v{font-family:'Space Mono',monospace;font-size:.9rem;font-weight:700;color:var(--accent)}
+.ar-info-item .l{font-size:.55rem;color:var(--muted);text-transform:uppercase}
+.ar-btn-row{display:flex;gap:8px}
+.ar-btn{flex:1;padding:10px;border-radius:8px;border:none;font-size:.75rem;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif}
+.ar-start{background:var(--accent);color:#000}
+.ar-stop{background:#ff335530;border:1px solid var(--danger);color:var(--danger)}
+.ar-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;padding:24px;text-align:center}
+.ar-placeholder .icon{font-size:3rem}
+.ar-placeholder p{color:var(--muted);font-size:.85rem;line-height:1.6}
+
+/* ── SIGNAL METER ── */
+.signal-meter-wrap{margin:8px 0}
+.signal-bar-bg{height:22px;background:var(--surface);border-radius:11px;overflow:hidden;border:1px solid var(--border);position:relative}
+.signal-bar-fill{height:100%;border-radius:11px;transition:width .4s,background .4s;background:linear-gradient(90deg,var(--green),var(--accent))}
+.signal-bar-fill.weak{background:linear-gradient(90deg,var(--danger),var(--orange))}
+.signal-bar-fill.medium{background:linear-gradient(90deg,var(--orange),var(--yellow))}
+.signal-pct{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:'Space Mono',monospace;font-size:.7rem;font-weight:700;color:#fff}
+.signal-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--muted);margin-top:3px;padding:0 2px}
+
+/* ── LNB VISUAL ── */
+.lnb-visual{background:var(--surface);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#lnbCanvas{border-radius:8px}
+.lnb-angle-big{font-family:'Space Mono',monospace;font-size:2rem;font-weight:700;text-align:center}
+.lnb-hint{font-size:.75rem;color:var(--muted);text-align:center;line-height:1.5}
+
+/* ── DISH CALC ── */
+.dish-result{background:var(--surface);border:1px solid var(--green);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.dish-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.dish-row:last-child{border-bottom:none}
+.dish-row .dk{font-size:.78rem;color:var(--muted)}
+.dish-row .dv{font-family:'Space Mono',monospace;font-size:.9rem;color:var(--green);font-weight:700}
+
+/* ── GPS MAP ── */
+#mapFrame{width:100%;height:260px;border:none;border-radius:12px;overflow:hidden}
+.gps-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gps-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.gps-box .gv{font-family:'Space Mono',monospace;font-size:.95rem;color:var(--accent);font-weight:700;word-break:break-all}
+.gps-box .gl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+
+/* ── STATUS ── */
+.status-line{font-size:.72rem;text-align:center;min-height:16px;padding:2px 0}
+.status-line.ok{color:var(--green)}
+.status-line.err{color:var(--danger)}
+.status-line.info{color:var(--muted)}
+
+/* ── TIPS ── */
+.tip-list{display:flex;flex-direction:column;gap:0}
+.tip-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.78rem;color:var(--muted);line-height:1.5}
+.tip-item:last-child{border-bottom:none}
+.tip-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:7px;flex-shrink:0}
+.tip-item b{color:var(--text)}
+
+/* ── ERROR BOX ── */
+.error-box{display:none;background:#2a0d1420;border:1px solid var(--danger);border-radius:10px;padding:10px 14px;color:var(--danger);font-size:.8rem;margin:0 14px}
+
+/* ── ACCURACY BADGE ── */
+.accuracy-badge{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:linear-gradient(135deg,#003322,#001a14);border:1px solid var(--green);border-radius:12px}
+.acc-pct{font-family:'Space Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--green)}
+.acc-label{font-size:.7rem;color:var(--muted)}
+
+select option{background:#111e33}
+</style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active" onclick="showTab('setup')"><span class="tab-icon">⚙️</span>Setup</div>
+  <div class="tab" onclick="showTab('compass')"><span class="tab-icon">🧭</span>Compass</div>
+  <div class="tab" onclick="showTab('ar')"><span class="tab-icon">📷</span>AR Cam</div>
+  <div class="tab" onclick="showTab('lnb')"><span class="tab-icon">📡</span>LNB</div>
+  <div class="tab" onclick="showTab('gps')"><span class="tab-icon">🗺️</span>GPS</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 1 · SETUP
+══════════════════════════════════════════ -->
+<div id="page-setup" class="page active">
+  <div class="scroll-body">
+
+    <!-- Satellite badge -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 14px">
+      <div>
+        <div style="font-size:1rem;font-weight:700;color:var(--accent)">PakSat-1R · 38°E</div>
+        <div style="font-size:.7rem;color:var(--muted)">Geostationary · 35,786 km</div>
+      </div>
+      <div class="sat-pill">🛰️ GEO ORBIT</div>
+    </div>
+
+    <!-- Location card -->
+    <div class="card">
+      <div class="card-title">Your Location</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="row2">
+          <div><label>Latitude (°N)</label><input type="number" id="lat" placeholder="30.3753" step="0.0001" min="-90" max="90"></div>
+          <div><label>Longitude (°E)</label><input type="number" id="lng" placeholder="69.3451" step="0.0001" min="-180" max="180"></div>
+        </div>
+        <div><label>Altitude (meters)</label><input type="number" id="alt" placeholder="0" step="1" min="0" max="9000"></div>
+        <div class="status-line info" id="loc-status"></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="getGPS()">📍 Auto GPS</button>
+          <button class="btn btn-primary" onclick="calculate()">Calculate →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dish specs card -->
+    <div class="card">
+      <div class="card-title">Dish &amp; Mount Specs</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="row2">
+          <div>
+            <label>Dish Diameter</label>
+            <select id="dishSize">
+              <option value="60">60 cm (2 ft)</option>
+              <option value="75">75 cm (2.5 ft)</option>
+              <option value="90" selected>90 cm (3 ft)</option>
+              <option value="120">120 cm (4 ft)</option>
+              <option value="150">150 cm (5 ft)</option>
+              <option value="180">180 cm (6 ft)</option>
+              <option value="240">240 cm (8 ft)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div>
+            <label>Dish Type</label>
+            <select id="dishType">
+              <option value="offset" selected>Offset (Standard)</option>
+              <option value="prime">Prime Focus</option>
+              <option value="cassegrain">Cassegrain</option>
+            </select>
+          </div>
+        </div>
+        <div id="customDishRow" style="display:none">
+          <label>Custom Diameter (cm)</label>
+          <input type="number" id="customDish" placeholder="Enter cm" min="30" max="500">
+        </div>
+        <div class="row2">
+          <div>
+            <label>Stick / Pole Length (cm)</label>
+            <input type="number" id="stickLen" placeholder="e.g. 40" value="40" min="5" max="200">
+          </div>
+          <div>
+            <label>F/D Ratio</label>
+            <select id="fdRatio">
+              <option value="0.6">0.60 (Deep)</option>
+              <option value="0.7" selected>0.70 (Standard)</option>
+              <option value="0.8">0.80 (Shallow)</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label>LNB Type</label>
+          <select id="lnbType">
+            <option value="ku_single">Ku-Band Single</option>
+            <option value="ku_universal" selected>Ku-Band Universal</option>
+            <option value="ku_twin">Ku-Band Twin</option>
+            <option value="c_band">C-Band</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error box -->
+    <div class="error-box" id="error-msg"></div>
+
+    <!-- Results card -->
+    <div class="card" id="results" style="display:none">
+      <div class="card-title">Pointing Angles</div>
+      <div class="result-grid" style="margin-bottom:12px">
+        <div class="result-box hi">
+          <div class="r-label">Azimuth</div>
+          <div class="r-value" id="res-az">--</div>
+          <div class="r-unit">° from North</div>
+        </div>
+        <div class="result-box hi-green">
+          <div class="r-label">Elevation</div>
+          <div class="r-value green" id="res-el">--</div>
+          <div class="r-unit">° above horizon</div>
+        </div>
+        <div class="result-box hi-yellow">
+          <div class="r-label">LNB Skew</div>
+          <div class="r-value yellow" id="res-sk">--</div>
+          <div class="r-unit">° rotate LNB</div>
+        </div>
+        <div class="result-box">
+          <div class="r-label">Direction</div>
+          <div class="r-value" id="res-dir">--</div>
+          <div class="r-unit">compass bearing</div>
+        </div>
+      </div>
+
+      <!-- Accuracy badge -->
+      <div class="accuracy-badge" style="margin-bottom:12px">
+        <div class="acc-pct" id="acc-pct">--%</div>
+        <div>
+          <div style="font-size:.8rem;font-weight:600;color:var(--text)">Estimated Accuracy</div>
+          <div class="acc-label" id="acc-label">based on dish size & specs</div>
+        </div>
+      </div>
+
+      <!-- Signal simulation meter -->
+      <div class="card-title" style="margin-bottom:8px">Expected Signal Quality</div>
+      <div class="signal-meter-wrap">
+        <div class="signal-bar-bg">
+          <div class="signal-bar-fill" id="sig-fill" style="width:0%"></div>
+          <div class="signal-pct" id="sig-pct">0%</div>
+        </div>
+        <div class="signal-labels"><span>Weak</span><span>Fair</span><span>Good</span><span>Excellent</span></div>
+      </div>
+
+      <!-- Dish calc results -->
+      <div class="card-title" style="margin-top:14px;margin-bottom:8px">Dish Mount Calculations</div>
+      <div class="dish-result" id="dish-result">
+        <div class="dish-row"><span class="dk">Focal Length</span><span class="dv" id="dc-focal">--</span></div>
+        <div class="dish-row"><span class="dk">LNB Offset (stick pos)</span><span class="dv" id="dc-offset">--</span></div>
+        <div class="dish-row"><span class="dk">Dish Tilt from Vertical</span><span class="dv" id="dc-tilt">--</span></div>
+        <div class="dish-row"><span class="dk">Beamwidth (3dB)</span><span class="dv" id="dc-beam">--</span></div>
+        <div class="dish-row"><span class="dk">Gain Estimate</span><span class="dv" id="dc-gain">--</span></div>
+        <div class="dish-row"><span class="dk">Min Clear Sky Elev</span><span class="dv" id="dc-minel">--</span></div>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-secondary" onclick="showTab('compass')">🧭 Open Compass</button>
+        <button class="btn btn-secondary" onclick="showTab('ar')">📷 AR View</button>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card">
+      <div class="card-title">Installation Tips</div>
+      <div class="tip-list">
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Azimuth</b> — horizontal rotation. Use live compass tab to align precisely.</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Elevation</b> — vertical tilt from ground level. Tilt dish up to this angle.</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>LNB Skew</b> — rotate LNB clockwise (+) or anti-clockwise (−) by the shown degrees.</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Stick length</b> affects LNB focal point. Use the calculated offset to position LNB correctly.</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Fine tune</b> — after rough alignment, peak signal with receiver signal meter in small sweeps.</span></div>
+      </div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 2 · LIVE COMPASS
+══════════════════════════════════════════ -->
+<div id="page-compass" class="page">
+  <div class="scroll-body">
+    <div class="card">
+      <div class="card-title">Live Device Compass</div>
+      <div class="compass-section">
+        <div class="heading-display" id="live-heading">---°</div>
+        <div class="heading-dir" id="live-dir">–</div>
+        <canvas id="arCompass" width="280" height="280"></canvas>
+        <div class="align-status far" id="align-status">⏳ Calculate first, then align</div>
+        <div style="font-size:.72rem;color:var(--muted);text-align:center">
+          Target azimuth: <span style="color:var(--accent);font-family:'Space Mono',monospace" id="compass-target">--°</span>
+          &nbsp;|&nbsp; Diff: <span style="color:var(--yellow);font-family:'Space Mono',monospace" id="compass-diff">--°</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Elevation Guide</div>
+      <canvas id="elevCanvas" width="320" height="120" style="width:100%;border-radius:8px;background:var(--surface)"></canvas>
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:6px">
+        Target elevation: <span style="color:var(--green);font-family:'Space Mono',monospace" id="elev-target">--°</span>
+      </div>
+    </div>
+    <div class="card" style="background:#00000030;border-color:#1e3055">
+      <div style="font-size:.75rem;color:var(--muted);text-align:center;line-height:1.7">
+        📱 Hold phone flat for compass · Tilt phone for elevation<br>
+        ⚠️ Keep away from metal &amp; electronics for accuracy<br>
+        🔄 If compass spins, do figure-8 motion to calibrate
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Compass Calibration</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;line-height:1.6">
+        If this heading doesn't match your phone's built-in compass, point your phone at a known direction (e.g. use your phone's native compass app), then enter the difference below.
+      </div>
+      <div class="row2">
+        <div>
+          <label>Current Heading</label>
+          <input type="number" id="cal-current" readonly style="opacity:.7">
+        </div>
+        <div>
+          <label>Correct Heading (from phone compass)</label>
+          <input type="number" id="cal-target" placeholder="e.g. 274">
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <button class="btn btn-primary" onclick="applyCalibration()">Apply Calibration</button>
+      <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:8px">
+        Current offset: <span id="cal-offset" style="font-family:'Space Mono',monospace;color:var(--accent)">0°</span>
+        &nbsp;<a href="#" onclick="resetCalibration();return false" style="color:var(--danger)">Reset</a>
+      </div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 3 · AR CAMERA
+══════════════════════════════════════════ -->
+<div id="page-ar" class="page" style="overflow:hidden;position:relative">
+  <div id="arPlaceholder" class="ar-placeholder">
+    <div class="icon">📷</div>
+    <div style="font-size:.95rem;font-weight:600;color:var(--text)">AR Satellite Finder</div>
+    <p>Point your camera at the sky. The target line shows exactly where PakSat-1R is located. Align your dish with the crosshair.</p>
+    <button class="btn btn-primary" style="width:100%;max-width:220px" onclick="startAR()">Start AR Camera</button>
+    <p style="font-size:.7rem">Requires camera &amp; compass permission</p>
+<div id="permStatus" style="margin-top:10px;padding:10px;background:#111e33;border:1px solid #1e3055;border-radius:10px;font-size:.8rem">
+<div id="camStatus">📷 Camera: Waiting</div>
+<div id="gpsStatus">📍 GPS: Waiting</div>
+<div id="compassStatus">🧭 Compass: Waiting</div>
+</div>
+
+  </div>
+  <div id="arActive" style="display:none;position:relative;width:100%;height:calc(100vh - 100px)">
+    <video id="cameraVideo" autoplay playsinline muted></video>
+    <canvas id="arCanvas"></canvas>
+    <div class="ar-controls">
+      <div class="ar-info-bar">
+        <div class="ar-info-item"><div class="l">Azimuth</div><div class="v" id="ar-az">--°</div></div>
+        <div class="ar-info-item"><div class="l">Elevation</div><div class="v" id="ar-el">--°</div></div>
+        <div class="ar-info-item"><div class="l">Heading</div><div class="v" id="ar-head">--°</div></div>
+        <div class="ar-info-item"><div class="l">Diff</div><div class="v" id="ar-diff">--°</div></div>
+      </div>
+      <div class="ar-btn-row">
+        <button class="ar-btn ar-stop" onclick="stopAR()">✕ Stop Camera</button>
+        <button class="ar-btn" style="background:#ffffff18;color:#fff;border:1px solid #ffffff30" onclick="switchCam()">🔄 Flip Cam</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 4 · LNB
+══════════════════════════════════════════ -->
+<div id="page-lnb" class="page">
+  <div class="scroll-body">
+
+    <!-- LNB angle visual -->
+    <div class="card">
+      <div class="card-title">LNB Skew Angle</div>
+      <div class="lnb-visual">
+        <canvas id="lnbCanvas" width="260" height="200"></canvas>
+        <div class="lnb-angle-big" id="lnb-angle-big" style="color:var(--yellow)">--°</div>
+        <div class="lnb-hint" id="lnb-hint">Calculate your location first in Setup tab</div>
+      </div>
+    </div>
+
+    <!-- LNB signal estimator -->
+    <div class="card">
+      <div class="card-title">Signal Strength Estimator</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label>Weather Condition</label>
+          <select id="weatherCond" onchange="updateSignal()">
+            <option value="1.0">☀️ Clear Sky</option>
+            <option value="0.85" selected>🌤️ Partly Cloudy</option>
+            <option value="0.65">☁️ Overcast</option>
+            <option value="0.45">🌧️ Light Rain</option>
+            <option value="0.25">⛈️ Heavy Rain</option>
+          </select>
+        </div>
+        <div>
+          <label>Obstacles / Line of Sight</label>
+          <select id="obstacles" onchange="updateSignal()">
+            <option value="1.0">✅ Clear horizon</option>
+            <option value="0.85" selected>🌳 Few trees nearby</option>
+            <option value="0.60">🏘️ Buildings nearby</option>
+            <option value="0.30">🏢 Partially blocked</option>
+          </select>
+        </div>
+        <div>
+          <label>Cable Length (meters)</label>
+          <input type="number" id="cableLen" value="15" min="1" max="200" onchange="updateSignal()">
+        </div>
+
+        <div class="signal-meter-wrap">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:.72rem;color:var(--muted)">Estimated Signal</span>
+            <span style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--accent)" id="sig2-pct">--%</span>
+          </div>
+          <div class="signal-bar-bg">
+            <div class="signal-bar-fill" id="sig2-fill" style="width:0%"></div>
+          </div>
+          <div class="signal-labels"><span>Poor</span><span>Fair</span><span>Good</span><span>Excellent</span></div>
+        </div>
+
+        <div style="background:var(--surface);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px" id="signal-advice">
+          <div style="font-size:.75rem;color:var(--muted)" id="sig-advice-text">Enter your setup details above.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LNB specs -->
+    <div class="card">
+      <div class="card-title">LNB Spec Reference</div>
+      <div class="tip-list">
+        <div class="tip-item"><div class="tip-dot"></div><span><b>PakSat-1R Ku-Band</b>: 10.70–12.75 GHz downlink</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Universal LNB</b>: LOF 9.75/10.60 GHz, use for all PakSat channels</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Noise Figure</b>: Choose ≤0.3 dB for best weak-signal performance</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Skew positive (+)</b>: rotate LNB clockwise when viewed from front</span></div>
+        <div class="tip-item"><div class="tip-dot"></div><span><b>Skew negative (−)</b>: rotate LNB anti-clockwise when viewed from front</span></div>
+      </div>
+    </div>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 5 · GPS MAP
+══════════════════════════════════════════ -->
+<div id="page-gps" class="page">
+  <div class="scroll-body">
+    <div class="card">
+      <div class="card-title">GPS Location</div>
+      <div class="gps-grid" style="margin-bottom:12px">
+        <div class="gps-box"><div class="gl">Latitude</div><div class="gv" id="gps-lat">--</div></div>
+        <div class="gps-box"><div class="gl">Longitude</div><div class="gv" id="gps-lng">--</div></div>
+        <div class="gps-box"><div class="gl">Altitude</div><div class="gv" id="gps-alt">--</div></div>
+        <div class="gps-box"><div class="gl">Accuracy</div><div class="gv" id="gps-acc">--</div></div>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-primary" onclick="refreshGPS()">📍 Get My Location</button>
+        <button class="btn btn-secondary" onclick="openInMaps()">🗺️ Open Maps</button>
+      </div>
+      <div class="status-line info" id="gps-status">Tap "Get My Location" to start</div>
+    </div>
+
+    <!-- OpenStreetMap embed -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="mapContainer" style="width:100%;height:280px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--muted);font-size:.8rem">
+        <span style="font-size:2rem">🗺️</span>
+        <span>Get location to load map</span>
+      </div>
+    </div>
+
+    <!-- Satellite direction from location -->
+    <div class="card" id="gps-sat-card" style="display:none">
+      <div class="card-title">Satellite Direction from Here</div>
+      <canvas id="miniMapCanvas" width="320" height="160" style="width:100%;border-radius:10px;background:var(--surface)"></canvas>
+      <div style="font-size:.72rem;color:var(--muted);text-align:center;margin-top:6px">
+        Your position → PakSat-1R direction indicator
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const SAT_LON = 38.0;
+let state = {
+  lat: null, lng: null, alt: 0,
+  az: null, el: null, skew: null,
+  dishDiam: 90, stickLen: 40, fdRatio: 0.7,
+  deviceHeading: null, deviceBeta: null,
+  cameraStream: null, facingMode: 'environment',
+  compassInterval: null, usedAbsolute: false, headingOffset: 0
+};
+
+function toRad(d){return d*Math.PI/180}
+function toDeg(r){return r*180/Math.PI}
+
+
+async function requestStartupPermissions(){
+  try{
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+      ()=>{const e=document.getElementById('gpsStatus'); if(e)e.textContent='📍 GPS: Granted';},
+      ()=>{const e=document.getElementById('gpsStatus'); if(e)e.textContent='📍 GPS: Denied';}
+    );
+    }
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      const s = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+      s.getTracks().forEach(t=>t.stop());
+      const e=document.getElementById('camStatus'); if(e)e.textContent='📷 Camera: Granted';
+    }
+    if(typeof DeviceOrientationEvent!=='undefined' &&
+       typeof DeviceOrientationEvent.requestPermission==='function'){
+      try{
+         const r=await DeviceOrientationEvent.requestPermission();
+         const e=document.getElementById('compassStatus');
+         if(e)e.textContent='🧭 Compass: '+(r==='granted'?'Granted':'Denied');
+       }catch(err){}
+    }
+  }catch(e){}
+}
+
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+function showTab(name){
+  document.querySelectorAll('.tab,.page').forEach(e=>e.classList.remove('active'));
+  document.querySelector(`.tab:nth-child(${['setup','compass','ar','lnb','gps'].indexOf(name)+1})`).classList.add('active');
+  document.getElementById('page-'+name).classList.add('active');
+  if(name==='compass') startCompass();
+  if(name==='gps' && state.lat) renderMap();
+}
+
+// ═══════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════
+function getGPS(){
+  const s=document.getElementById('loc-status');
+  s.className='status-line info'; s.textContent='⏳ Getting GPS…';
+  if(!navigator.geolocation){s.className='status-line err';s.textContent='Geolocation not supported';return}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:la,longitude:lo,altitude:al,accuracy:ac}=pos.coords;
+    document.getElementById('lat').value=la.toFixed(5);
+    document.getElementById('lng').value=lo.toFixed(5);
+    if(al) document.getElementById('alt').value=Math.round(al);
+    state.lat=la; state.lng=lo; state.alt=al||0;
+    s.className='status-line ok'; s.textContent=`✓ ${la.toFixed(4)}°N, ${lo.toFixed(4)}°E · ±${Math.round(ac)}m`;
+    updateGPSDisplay(la,lo,al,ac);
+  },err=>{s.className='status-line err';s.textContent='✗ Failed. Enter coordinates manually.'},
+  {enableHighAccuracy:true,timeout:12000});
+}
+
+function refreshGPS(){
+  document.getElementById('gps-status').className='status-line info';
+  document.getElementById('gps-status').textContent='⏳ Locating…';
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const {latitude:la,longitude:lo,altitude:al,accuracy:ac}=pos.coords;
+    state.lat=la; state.lng=lo; state.alt=al||0;
+    document.getElementById('lat').value=la.toFixed(5);
+    document.getElementById('lng').value=lo.toFixed(5);
+    updateGPSDisplay(la,lo,al,ac);
+    renderMap();
+    document.getElementById('gps-status').className='status-line ok';
+    document.getElementById('gps-status').textContent=`✓ Accuracy ±${Math.round(ac)}m`;
+  },()=>{
+    document.getElementById('gps-status').className='status-line err';
+    document.getElementById('gps-status').textContent='✗ Could not get location';
+  },{enableHighAccuracy:true,timeout:12000});
+}
+
+function updateGPSDisplay(la,lo,al,ac){
+  document.getElementById('gps-lat').textContent=la.toFixed(6)+'°';
+  document.getElementById('gps-lng').textContent=lo.toFixed(6)+'°';
+  document.getElementById('gps-alt').textContent=al?Math.round(al)+'m':'N/A';
+  document.getElementById('gps-acc').textContent=ac?'±'+Math.round(ac)+'m':'N/A';
+}
+
+function openInMaps(){
+  if(!state.lat){alert('Get location first');return}
+  window.open(`https://www.google.com/maps?q=${state.lat},${state.lng}`,'_blank');
+}
+
+function renderMap(){
+  const c=document.getElementById('mapContainer');
+  const z=14;
+  const url=`https://www.openstreetmap.org/export/embed.html?bbox=${state.lng-0.02},${state.lat-0.02},${state.lng+0.02},${state.lat+0.02}&layer=mapnik&marker=${state.lat},${state.lng}`;
+  c.innerHTML=`<iframe src="${url}" style="width:100%;height:280px;border:none" loading="lazy"></iframe>`;
+  if(state.az!==null){
+    document.getElementById('gps-sat-card').style.display='block';
+    drawMiniMap();
+  }
+}
+
+function drawMiniMap(){
+  const cv=document.getElementById('miniMapCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d1525'; ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='#1e3055'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=32){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+  for(let y=0;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  // Direction arrow
+  const cx=W/2,cy=H/2;
+  const az=toRad(state.az-90);
+  const len=65;
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(az);
+  // Arrow body
+  ctx.beginPath();ctx.moveTo(-10,0);ctx.lineTo(len,0);
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=3;ctx.stroke();
+  // Arrowhead
+  ctx.beginPath();ctx.moveTo(len,0);ctx.lineTo(len-14,-7);ctx.lineTo(len-14,7);ctx.closePath();
+  ctx.fillStyle='#00d4ff';ctx.fill();
+  ctx.restore();
+  // You label
+  ctx.beginPath();ctx.arc(cx,cy,8,0,2*Math.PI);ctx.fillStyle='#00ffaa';ctx.fill();
+  ctx.font='700 10px monospace';ctx.fillStyle='#000';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('YOU',cx,cy);
+  // Satellite label
+  const ex=cx+Math.cos(az)*len;const ey=cy+Math.sin(az)*len;
+  ctx.font='700 10px monospace';ctx.fillStyle='#00d4ff';ctx.textAlign='center';
+  ctx.fillText('🛰️ PakSat',ex+Math.cos(az)*18,ey+Math.sin(az)*18);
+  // Compass rose
+  ctx.font='700 10px monospace';ctx.fillStyle='#ff3355';ctx.textAlign='center';
+  ctx.fillText('N',cx,12);
+  ctx.fillStyle='#5a7aaa';
+  ctx.fillText('S',cx,H-6);ctx.fillText('W',10,cy+4);ctx.fillText('E',W-6,cy+4);
+}
+
+// ═══════════════════════════════════════
+// CALCULATE
+// ═══════════════════════════════════════
+function calculate(){
+  const latV=document.getElementById('lat').value;
+  const lngV=document.getElementById('lng').value;
+  showError('');
+  if(!latV||!lngV){showError('Enter coordinates or use Auto GPS');return}
+  const lat=parseFloat(latV),lng=parseFloat(lngV);
+  if(isNaN(lat)||isNaN(lng)||lat<-90||lat>90||lng<-180||lng>180){showError('Invalid coordinates');return}
+
+  state.lat=lat; state.lng=lng;
+  state.alt=parseFloat(document.getElementById('alt').value)||0;
+
+  // Get dish specs
+  let diam=document.getElementById('dishSize').value;
+  if(diam==='custom') diam=parseFloat(document.getElementById('customDish').value)||90;
+  else diam=parseFloat(diam);
+  state.dishDiam=diam;
+  state.stickLen=parseFloat(document.getElementById('stickLen').value)||40;
+  let fd=document.getElementById('fdRatio').value;
+  state.fdRatio=fd==='custom'?0.7:parseFloat(fd);
+
+  // ── Orbital math ──
+  const R_E=6378.137, R_sat=42164.2;
+  const dLon=toRad(SAT_LON-lng), latR=toRad(lat);
+  const cosA=Math.cos(latR)*Math.cos(dLon);
+  const elev=toDeg(Math.atan((cosA-R_E/R_sat)/Math.sqrt(1-cosA*cosA)));
+  const az_base=toDeg(Math.atan2(Math.tan(dLon),Math.sin(latR)));
+  let az=lat>=0?180+az_base:az_base;
+  if(az<0)az+=360; if(az>=360)az-=360;
+  const skew=toDeg(Math.atan2(Math.sin(toRad(SAT_LON-lng)),Math.tan(latR)));
+
+  if(elev<0){showError(`PakSat-1R is below your horizon (${elev.toFixed(1)}°). Not visible from this location.`);return}
+
+  state.az=az; state.el=elev; state.skew=skew;
+
+  // ── Dish calculations ──
+  const focalLen=(state.fdRatio*diam).toFixed(1);
+  // LNB offset position from dish center
+  const lnbOffset=((state.fdRatio*diam)/2).toFixed(1);
+  // Dish tilt from vertical = 90 - elevation (for offset dish add ~22°)
+  const dishOffset= document.getElementById('dishType').value==='offset'?22:0;
+  const dishTilt=(90-elev+dishOffset).toFixed(1);
+  // 3dB beamwidth in degrees ≈ 70λ/D  (λ≈0.025m for 12GHz)
+  const beamwidth=(70*0.025/(diam/100)).toFixed(2);
+  // Dish gain ≈ 10*log10(η*(π*D/λ)²) with η=0.55
+  const gainLin=0.55*Math.pow(Math.PI*(diam/100)/0.025,2);
+  const gainDB=(10*Math.log10(gainLin)).toFixed(1);
+  const minElev=(elev+2).toFixed(1);
+
+  // ── Accuracy estimate ──
+  const baseAcc=diam>=150?98:diam>=120?95:diam>=90?92:diam>=75?88:82;
+  const elevPenalty=elev<15?8:elev<25?3:0;
+  const acc=Math.min(99,Math.max(70,baseAcc-elevPenalty));
+
+  // ── Expected signal ──
+  const sigBase=diam>=120?92:diam>=90?85:diam>=75?78:68;
+  const sigElev=elev<15?0.7:elev<25?0.85:1.0;
+  const sig=Math.min(98,Math.round(sigBase*sigElev));
+
+  // ── Update UI ──
+  document.getElementById('res-az').textContent=az.toFixed(1)+'°';
+  document.getElementById('res-el').textContent=elev.toFixed(1)+'°';
+  document.getElementById('res-sk').textContent=(skew>=0?'+':'')+skew.toFixed(1)+'°';
+  document.getElementById('res-dir').textContent=compassDir(az);
+
+  document.getElementById('acc-pct').textContent=acc+'%';
+  document.getElementById('acc-label').textContent=`${diam}cm dish · ${state.stickLen}cm stick · F/D ${state.fdRatio}`;
+
+  animateBar('sig-fill','sig-pct',sig);
+
+  document.getElementById('dc-focal').textContent=focalLen+' mm';
+  document.getElementById('dc-offset').textContent=lnbOffset+' mm from center';
+  document.getElementById('dc-tilt').textContent=dishTilt+'°';
+  document.getElementById('dc-beam').textContent=beamwidth+'°';
+  document.getElementById('dc-gain').textContent=gainDB+' dBi';
+  document.getElementById('dc-minel').textContent=minElev+'° above horizon';
+
+  document.getElementById('results').style.display='block';
+
+  // Update compass target
+  document.getElementById('compass-target').textContent=az.toFixed(1)+'°';
+  document.getElementById('elev-target').textContent=elev.toFixed(1)+'°';
+  document.getElementById('ar-az').textContent=az.toFixed(1)+'°';
+  document.getElementById('ar-el').textContent=elev.toFixed(1)+'°';
+  document.getElementById('lnb-angle-big').textContent=(skew>=0?'+':'')+skew.toFixed(1)+'°';
+  document.getElementById('lnb-hint').textContent=skew>=0?'Rotate LNB clockwise (when viewed from front)':'Rotate LNB anti-clockwise (when viewed from front)';
+
+  drawLNB(skew);
+  drawElevCanvas(elev);
+  updateSignal();
+
+  // Update GPS card
+  if(state.lat) renderGPSSatCard();
+}
+
+function renderGPSSatCard(){
+  if(state.az===null) return;
+  document.getElementById('gps-sat-card').style.display='block';
+  drawMiniMap();
+}
+
+function animateBar(fillId,pctId,target){
+  let cur=0;
+  const fill=document.getElementById(fillId);
+  const pctEl=pctId?document.getElementById(pctId):null;
+  const t=setInterval(()=>{
+    cur=Math.min(target,cur+2);
+    fill.style.width=cur+'%';
+    if(pctEl) pctEl.textContent=cur+'%';
+    fill.className='signal-bar-fill'+(cur<30?' weak':cur<60?' medium':'');
+    if(cur>=target) clearInterval(t);
+  },16);
+}
+
+// ═══════════════════════════════════════
+// SIGNAL UPDATE (LNB page)
+// ═══════════════════════════════════════
+function updateSignal(){
+  if(state.el===null) return;
+  const weather=parseFloat(document.getElementById('weatherCond').value)||1;
+  const obs=parseFloat(document.getElementById('obstacles').value)||1;
+  const cable=parseFloat(document.getElementById('cableLen').value)||15;
+  const cableLoss=Math.max(0,1-(cable*0.003));
+  const dishFactor=state.dishDiam>=120?1.0:state.dishDiam>=90?0.93:state.dishDiam>=75?0.85:0.75;
+  const elevFactor=state.el<15?0.6:state.el<25?0.8:1.0;
+  const sig=Math.round(Math.min(98,Math.max(5,92*weather*obs*cableLoss*dishFactor*elevFactor)));
+  const fill=document.getElementById('sig2-fill');
+  fill.style.width=sig+'%';
+  fill.className='signal-bar-fill'+(sig<30?' weak':sig<60?' medium':'');
+  document.getElementById('sig2-pct').textContent=sig+'%';
+  let advice='';
+  if(sig<30) advice='⚠️ Poor signal expected. Check line-of-sight, consider larger dish or shorter cable.';
+  else if(sig<60) advice='🟡 Fair signal. May work but use a larger dish for reliability.';
+  else if(sig<80) advice='🟢 Good signal. Standard setup should work well.';
+  else advice='🔵 Excellent signal expected. Your setup is well configured!';
+  if(cable>30) advice+=' · Consider cable amplifier for '+cable+'m run.';
+  document.getElementById('sig-advice-text').textContent=advice;
+}
+
+// ═══════════════════════════════════════
+// DRAW LNB
+// ═══════════════════════════════════════
+function drawLNB(skew){
+  const cv=document.getElementById('lnbCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d1525'; ctx.fillRect(0,0,W,H);
+  const cx=W/2,cy=H/2;
+  // LNB circle body
+  ctx.beginPath();ctx.arc(cx,cy,50,0,2*Math.PI);
+  ctx.strokeStyle='#1e3055';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#131929';ctx.fill();
+  // Skew indicator line
+  const ang=toRad(skew);
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
+  ctx.beginPath();ctx.moveTo(0,-44);ctx.lineTo(0,44);
+  ctx.strokeStyle='#ffd700';ctx.lineWidth=3;ctx.lineCap='round';ctx.stroke();
+  // Arrow at top
+  ctx.beginPath();ctx.moveTo(0,-44);ctx.lineTo(-6,-32);ctx.lineTo(6,-32);ctx.closePath();
+  ctx.fillStyle='#ffd700';ctx.fill();
+  ctx.restore();
+  // Reference (0°) line
+  ctx.save();ctx.translate(cx,cy);
+  ctx.beginPath();ctx.moveTo(0,-44);ctx.lineTo(0,44);
+  ctx.strokeStyle='#1e305588';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();
+  ctx.restore();
+  // Labels
+  ctx.font='600 10px monospace';ctx.textAlign='center';ctx.fillStyle='#5a7aaa';
+  ctx.fillText('0° ref',cx,cy-56);
+  ctx.fillStyle='#ffd700';
+  ctx.fillText((skew>=0?'+':'')+skew.toFixed(1)+'°',cx,cy+68);
+  // Rotation direction arc
+  if(Math.abs(skew)>2){
+    ctx.beginPath();
+    const startA=skew>0?-Math.PI/2:-Math.PI/2+toRad(skew);
+    const endA=skew>0?-Math.PI/2+toRad(skew):-Math.PI/2;
+    ctx.arc(cx,cy,38,startA,endA);
+    ctx.strokeStyle='#ffd70060';ctx.lineWidth=4;ctx.setLineDash([]);ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════
+// DRAW ELEVATION CANVAS
+// ═══════════════════════════════════════
+function drawElevCanvas(elev){
+  const cv=document.getElementById('elevCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0d1525';ctx.fillRect(0,0,W,H);
+  // Horizon line
+  const hy=H-30;
+  ctx.beginPath();ctx.moveTo(20,hy);ctx.lineTo(W-20,hy);
+  ctx.strokeStyle='#1e3055';ctx.lineWidth=1;ctx.stroke();
+  ctx.font='10px monospace';ctx.fillStyle='#5a7aaa';ctx.textAlign='left';
+  ctx.fillText('HORIZON',22,hy-4);
+  // Elevation arc
+  const ang=toRad(elev);
+  const originX=50,originY=hy;
+  const armLen=H-50;
+  const tx=originX+Math.cos(-ang)*armLen;
+  const ty=originY+Math.sin(-ang)*armLen;
+  ctx.beginPath();ctx.moveTo(originX,originY);ctx.lineTo(tx,ty);
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=3;ctx.lineCap='round';ctx.stroke();
+  // Satellite icon
+  ctx.font='16px serif';ctx.textAlign='center';
+  ctx.fillText('🛰️',tx,ty-4);
+  // Angle arc
+  ctx.beginPath();ctx.arc(originX,originY,40,0,-ang,true);
+  ctx.strokeStyle='#00ffaa80';ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();
+  ctx.setLineDash([]);
+  // Label
+  ctx.font='700 11px monospace';ctx.fillStyle='#00ffaa';ctx.textAlign='center';
+  ctx.fillText(elev.toFixed(1)+'°',originX+60,originY-20);
+  // Dish icon
+  ctx.font='22px serif';ctx.fillText('📡',originX,originY+20);
+}
+
+// ═══════════════════════════════════════
+// LIVE COMPASS
+// ═══════════════════════════════════════
+function startCompass(){
+  if(typeof DeviceOrientationEvent==='undefined') return;
+  const handler=(e)=>{
+    let heading=null;
+    if(e.webkitCompassHeading!=null){
+      // iOS Safari: already true compass heading
+      heading=e.webkitCompassHeading;
+    } else if(e.absolute===true && e.alpha!=null){
+      // Android absolute orientation: alpha is relative to true north
+      const screenAngle=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+      heading=(360-e.alpha+screenAngle)%360;
+      if(heading<0) heading+=360;
+    } else if(e.alpha!=null && !state.usedAbsolute){
+      // Fallback only (relative orientation, not true north - last resort)
+      const screenAngle=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+      heading=(360-e.alpha+screenAngle)%360;
+      if(heading<0) heading+=360;
+    }
+    if(heading===null) return;
+    heading=(heading+state.headingOffset+360)%360;
+    state.deviceHeading=heading;
+    state.deviceBeta=e.beta||0;
+    document.getElementById('live-heading').textContent=Math.round(heading)+'°';
+    document.getElementById('live-dir').textContent=compassDir(heading);
+    document.getElementById('ar-head').textContent=Math.round(heading)+'°';
+    const calCurrent=document.getElementById('cal-current');
+    if(calCurrent) calCurrent.value=Math.round(heading);
+    const statusEl=document.getElementById('compassStatus');
+    if(statusEl) statusEl.textContent='🧭 '+(state.usedAbsolute?'Absolute (true north) · alpha='+e.alpha.toFixed(1):'Relative (uncalibrated) · alpha='+e.alpha.toFixed(1));
+    drawLiveCompass(heading);
+    updateAlignStatus(heading);
+  };
+  const absHandler=(e)=>{ state.usedAbsolute=true; handler(e); };
+
+  const attach=()=>{
+    // Prefer deviceorientationabsolute (Android Chrome - true north reference)
+    window.addEventListener('deviceorientationabsolute', absHandler, true);
+    // Fallback for browsers without deviceorientationabsolute (older Android, iOS)
+    window.addEventListener('deviceorientation', handler, true);
+  };
+
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(p=>{
+      if(p==='granted') attach();
+      else { const el=document.getElementById('compassStatus'); if(el) el.textContent='🧭 Compass: Permission denied'; }
+    }).catch(()=>{});
+  } else {
+    attach();
+  }
+}
+
+function updateAlignStatus(heading){
+  if(state.az===null) return;
+  const diff=Math.abs(((heading-state.az)+540)%360-180);
+  const el=document.getElementById('align-status');
+  document.getElementById('compass-diff').textContent=diff.toFixed(1)+'°';
+  document.getElementById('ar-diff').textContent=diff.toFixed(1)+'°';
+  if(diff<3){el.className='align-status locked';el.textContent='🔒 LOCKED — Dish is aligned with PakSat-1R!'}
+  else if(diff<10){el.className='align-status close';el.textContent=`🎯 Close! Rotate ${diff.toFixed(1)}° more`}
+  else{el.className='align-status far';el.textContent=`↻ Rotate dish ${diff.toFixed(0)}° to align`}
+}
+
+function drawLiveCompass(heading){
+  const cv=document.getElementById('arCompass');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const cx=W/2,cy=H/2,r=W/2-8;
+  ctx.clearRect(0,0,W,H);
+
+  // Outer ring
+  ctx.beginPath();ctx.arc(cx,cy,r,0,2*Math.PI);
+  ctx.fillStyle='#0d1525';ctx.fill();
+  ctx.strokeStyle='#1e3055';ctx.lineWidth=2;ctx.stroke();
+
+  // Rotating rose
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(toRad(-heading));
+  // Degree ticks (0deg = North = up, increasing clockwise)
+  for(let i=0;i<360;i+=5){
+    const a=toRad(i-90);
+    const inner=i%90===0?r-20:i%45===0?r-14:i%10===0?r-10:r-6;
+    ctx.beginPath();ctx.moveTo(Math.cos(a)*inner,Math.sin(a)*inner);
+    ctx.lineTo(Math.cos(a)*(r-2),Math.sin(a)*(r-2));
+    ctx.strokeStyle=i%90===0?'#5a7aaa':i%10===0?'#2a4060':'#1a2a40';
+    ctx.lineWidth=i%90===0?2:1;ctx.stroke();
+  }
+  // Cardinal labels (0deg = North = up, increasing clockwise)
+  const cards=[['N',0,'#ff3355'],['NE',45,'#5a7aaa'],['E',90,'#5a7aaa'],['SE',135,'#5a7aaa'],
+               ['S',180,'#5a7aaa'],['SW',225,'#5a7aaa'],['W',270,'#5a7aaa'],['NW',315,'#5a7aaa']];
+  ctx.font='700 13px Space Grotesk,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const[lbl,deg,col] of cards){
+    const a=toRad(deg-90);const pr=r-32;
+    ctx.fillStyle=col;ctx.fillText(lbl,Math.cos(a)*pr,Math.sin(a)*pr);
+  }
+  // Satellite arrow (fixed in space, North=up convention)
+  if(state.az!==null){
+    const satAng=toRad(-state.az);
+    ctx.save();ctx.rotate(satAng);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-(r-22));
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=3;ctx.lineCap='round';ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-(r-22));ctx.lineTo(-6,-(r-36));ctx.lineTo(6,-(r-36));ctx.closePath();
+    ctx.fillStyle='#00d4ff';ctx.fill();
+    ctx.font='10px serif';ctx.textAlign='center';ctx.fillText('🛰️',0,-(r-48));
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Fixed pointer (device heading = up)
+  ctx.beginPath();ctx.moveTo(cx,cy-r+4);ctx.lineTo(cx-8,cy-r+20);ctx.lineTo(cx+8,cy-r+20);
+  ctx.closePath();ctx.fillStyle='#00ffaa';ctx.fill();
+
+  // Center dot
+  ctx.beginPath();ctx.arc(cx,cy,6,0,2*Math.PI);ctx.fillStyle='#00d4ff';ctx.fill();
+
+  // Heading text in center
+  ctx.font='700 16px Space Mono,monospace';ctx.fillStyle='#e8f0ff';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(Math.round(heading)+'°',cx,cy);
+}
+
+// ═══════════════════════════════════════
+// AR CAMERA
+// ═══════════════════════════════════════
+async function startAR(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+      await DeviceOrientationEvent.requestPermission();
+    }
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:state.facingMode,width:{ideal:1280},height:{ideal:720}},audio:false
+    });
+    state.cameraStream=stream;
+    const vid=document.getElementById('cameraVideo');
+    vid.srcObject=stream;
+    document.getElementById('arPlaceholder').style.display='none';
+    document.getElementById('arActive').style.display='block';
+    vid.addEventListener('loadedmetadata',()=>{
+      const cv=document.getElementById('arCanvas');
+      cv.width=vid.videoWidth||window.innerWidth;
+      cv.height=vid.videoHeight||window.innerHeight;
+      renderAR();
+    });
+  }catch(e){alert('Camera access denied or not available: '+e.message)}
+}
+
+function stopAR(){
+  if(state.cameraStream) state.cameraStream.getTracks().forEach(t=>t.stop());
+  state.cameraStream=null;
+  document.getElementById('arPlaceholder').style.display='flex';
+  document.getElementById('arActive').style.display='none';
+}
+
+async function switchCam(){
+  state.facingMode=state.facingMode==='environment'?'user':'environment';
+  stopAR(); await startAR();
+}
+
+function renderAR(){
+  if(!state.cameraStream) return;
+  const cv=document.getElementById('arCanvas');
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+
+  const heading=state.deviceHeading||0;
+  const targetAz=state.az||0;
+  const diff=((targetAz-heading+540)%360)-180;
+  const fov=60; // degrees horizontal FOV estimate
+  const vFov=45; // degrees vertical FOV estimate
+  const xOffset=(diff/fov)*W;
+  const satX=W/2+xOffset;
+
+  // Vertical position based on satellite elevation vs device tilt (pitch)
+  const targetEl=state.el||0;
+  const deviceBeta=state.deviceBeta||0;
+  // deviceBeta: ~90° when phone is held upright/vertical (pointing at horizon)
+  const devicePitch=deviceBeta-90; // 0 = pointing at horizon, +up
+  const elDiff=targetEl-devicePitch;
+  const yOffset=(elDiff/vFov)*H;
+  const satY=Math.min(Math.max(H/2-yOffset, 60), H-60);
+
+  // Crosshair lines
+  ctx.strokeStyle='#00d4ff44';ctx.lineWidth=1;ctx.setLineDash([8,8]);
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Target if in view
+  if(Math.abs(xOffset)<W/2+60){
+    // Glow
+    const grd=ctx.createRadialGradient(satX,satY,0,satX,satY,60);
+    grd.addColorStop(0,'#00d4ff44');grd.addColorStop(1,'transparent');
+    ctx.fillStyle=grd;ctx.fillRect(satX-60,satY-60,120,120);
+    // Crosshair ring
+    ctx.beginPath();ctx.arc(satX,satY,40,0,2*Math.PI);
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.arc(satX,satY,4,0,2*Math.PI);ctx.fillStyle='#00d4ff';ctx.fill();
+    // Cross ticks
+    [[-50,-10],[-10,-50],[10,-50],[50,-10],[50,10],[10,50],[-10,50],[-50,10]].forEach(([dx,dy])=>{
+      ctx.beginPath();ctx.moveTo(satX,satY);ctx.lineTo(satX+dx*0,satY+dy*0);
+    });
+    const tkLen=14;
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;
+    [[-40,0],[40,0],[0,-40],[0,40]].forEach(([dx,dy])=>{
+      ctx.beginPath();ctx.moveTo(satX+dx-Math.sign(dx)*tkLen/2,satY+dy-Math.sign(dy)*tkLen/2);
+      ctx.lineTo(satX+dx,satY+dy);ctx.stroke();
+    });
+    // Label
+    ctx.font='700 13px Space Grotesk,sans-serif';ctx.fillStyle='#00d4ff';ctx.textAlign='center';
+    ctx.fillText('PakSat-1R · 38°E',satX,satY-54);
+    if(state.az) ctx.fillText('Az '+state.az.toFixed(1)+'° | El '+state.el.toFixed(1)+'°',satX,satY-38);
+    // Locked indicator
+    if(Math.abs(diff)<3){
+      ctx.font='700 14px Space Grotesk,sans-serif';ctx.fillStyle='#00ffaa';
+      ctx.fillText('🔒 ALIGNED',satX,satY+60);
+    }
+  } else {
+    // Off-screen arrow guide
+    const arrowX=diff>0?W-40:40;
+    ctx.font='700 30px sans-serif';ctx.fillStyle='#00d4ff';ctx.textAlign='center';
+    ctx.fillText(diff>0?'→':'←',arrowX,H/2);
+    ctx.font='700 11px Space Grotesk,sans-serif';ctx.fillStyle='#fff';
+    ctx.fillText(Math.abs(diff).toFixed(0)+'°',arrowX,H/2+24);
+  }
+
+  // Horizon line with elevation indicator
+  if(state.el){
+    const elY=H/2+((state.el-10)/40)*(-H*0.3);
+    ctx.beginPath();ctx.moveTo(0,elY);ctx.lineTo(W,elY);
+    ctx.strokeStyle='#00ffaa55';ctx.lineWidth=1;ctx.setLineDash([12,6]);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='11px Space Grotesk,sans-serif';ctx.fillStyle='#00ffaa';ctx.textAlign='left';
+    ctx.fillText('El '+state.el.toFixed(1)+'°',8,elY-4);
+  }
+
+  requestAnimationFrame(renderAR);
+}
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function applyCalibration(){
+  const current=parseFloat(document.getElementById('cal-current').value);
+  const target=parseFloat(document.getElementById('cal-target').value);
+  if(isNaN(current)||isNaN(target)) { alert('Enter the correct heading from your phone compass.'); return; }
+  let delta=target-current;
+  delta=((delta+540)%360)-180; // normalize to -180..180
+  state.headingOffset=((state.headingOffset+delta)%360+360)%360;
+  try{ localStorage.setItem('compassHeadingOffset', state.headingOffset); }catch(e){}
+  updateCalDisplay();
+}
+function resetCalibration(){
+  state.headingOffset=0;
+  try{ localStorage.setItem('compassHeadingOffset', 0); }catch(e){}
+  updateCalDisplay();
+}
+function updateCalDisplay(){
+  const el=document.getElementById('cal-offset');
+  if(el) el.textContent=state.headingOffset.toFixed(1)+'°';
+}
+try{
+  const saved=localStorage.getItem('compassHeadingOffset');
+  if(saved!==null) state.headingOffset=parseFloat(saved)||0;
+}catch(e){}
+function compassDir(az){
+  const d=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return d[Math.round(az/22.5)%16];
+}
+function showError(msg){
+  const e=document.getElementById('error-msg');
+  e.textContent=msg; e.style.display=msg?'block':'none';
+}
+document.getElementById('dishSize').addEventListener('change',function(){
+  document.getElementById('customDishRow').style.display=this.value==='custom'?'block':'none';
+});
+
+// Auto-start compass on page load
+window.addEventListener('load',async()=>{
+  await requestStartupPermissions();
+  updateCalDisplay();
+  startCompass();
+  // Init LNB canvas blank
+  const cv=document.getElementById('lnbCanvas');
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#0d1525';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.font='13px monospace';ctx.fillStyle='#5a7aaa';ctx.textAlign='center';
+  ctx.fillText('Calculate to see LNB angle',cv.width/2,cv.height/2);
+});
+</script>
+</body>
+</html>
